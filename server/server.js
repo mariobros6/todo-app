@@ -1,35 +1,28 @@
 var express = require('express');
-var bodyPArser = require('body-parser');
+var bodyParser = require('body-parser');
 
-
-// save
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
 
-
-var newUser = new User({
-    email: 'stefek@ebros.pl'
-});
-
 var app = express();
 
-app.use(bodyPArser.json());
+app.use(bodyParser.json());
 
 app.post('/todos', (req, res) => {
-    var newTodo = new Todo({
-        text: req.body.text
-    });
+  var todo = new Todo({
+    text: req.body.text
+  });
 
-    newTodo.save().then((doc) => {
-        console.log('ok', doc);
-        res.send(doc);
-    }, (err) => {
-        res.status(400).send(err);
-        console.log('err', err);
-    });
+  todo.save().then((doc) => {
+    res.send(doc);
+  }, (e) => {
+    res.status(400).send(e);
+  });
 });
 
 app.listen(3000, () => {
-    console.log('server start');
-})
+  console.log('Started on port 3000');
+});
+
+module.exports = {app};
