@@ -98,3 +98,45 @@ describe('GET /todos/:id', () => {
             .end(done);
     });
 });
+
+describe('DELETE /todos/:id', () => {
+    it('powinno kasowac wyrbany rekord', (done) => {
+        request(app)
+            .delete('/todos/' + (todos[0]._id).toHexString())
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toBe(todos[0].text);
+                
+            })
+            .end((err, res) => {
+                if (err) 
+                    return done(err);
+                
+                Todo.findById(res.body._id).then((todo) =>  {
+
+                    expect(todo).toNotExist();
+
+                    return done();
+
+                }).catch((err) => {
+                    if (err)
+                        return done(err);
+                });
+            });
+    });
+
+    it('powinno zwrocic 404 - nie znaleziono', (done) => {
+        request(app)
+            .get('/todos/' + (new ObjectID).toHexString())
+            .expect(404)
+            .end(done);
+    });
+
+    it('powinno zwrocic 404 - glupie id', (done) => {
+        request(app)
+            .get('/todos/2323')
+            .expect(404)
+            .end(done);
+    });
+
+});
