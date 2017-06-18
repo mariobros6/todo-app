@@ -4,22 +4,12 @@ const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
+const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
-const todos = [{
-    _id: new ObjectID(),
-    text: "zadanie 1"
-}, {
-    _id: new ObjectID(),
-    text: "zadanie 2",
-    completed: true,
-    completedAt: 333
-}];
 
-beforeEach((done) => {
-  Todo.remove({}).then(() => {
-      return Todo.insertMany(todos);
-  }).then(() => done());
-});
+beforeEach(populateTodos);
+beforeEach(populateUsers);
 
 
 describe('post /todos', () => {
@@ -170,3 +160,69 @@ describe('PATCH /todos', () => {
             .end(done)
      })
 });
+
+describe('GET /users/me', () => {
+    it('powinno zwrocic usera, jesli uwierzytelniony', (done) => {
+        request(app)
+            .get('/users/me')
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body._id).toBe(users[0]._id.toHexString());
+                expect(res.body.email).toBe(users[0].email);
+            })
+            .end(done);
+    });
+
+    it('powinno zwrocic 401, jesli nie uwierzytelniony', (done) => {
+        request(app)
+            .get('/users/me')
+            .expect(401)
+            .expect((res) => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    })
+});
+
+describe('POST /users/', () => {
+    it('powinno zarejestrowac usera', (done) => {
+        var email = 'maa2arar@ebr.pl';
+        var password = 'pass1234';
+
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(200)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toExist();
+                expect(res.body._id).toExist();
+                expect(res.body.email).toBe(email); 
+                console.log(res.body);
+                done();
+            })
+            .end((err) => {
+                
+            });
+    });
+
+    it('nie powinno zarejestrowac, bo nie spelwnia wymagan', (done) => {
+        var email = 'dsdasdasebr.pl';
+        var pass = 'dasd';
+
+        request(app)
+            .post('/users')
+            .send({email, pass})
+            .expect(400)
+            .end(done);
+    });
+
+    it('nie powinno zarejsrtowac takiego samego usera', (done) => {
+        request(app)
+            .post('/users')
+            .send(users[0])
+            .expect(400)
+            .end(done)
+    });
+   
+})
