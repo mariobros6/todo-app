@@ -6,6 +6,7 @@ const {authenticate} = require('./middleware/authenticate');
 
 var express = require('express');
 var bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs')
 
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo');
@@ -43,6 +44,24 @@ app.post('/users', (req, res) => {
   }).catch((e) => {
     res.status(400).send(e);
   });
+});
+
+app.post('/users/login', (req, res) => {
+  var email = req.body.email;
+  var password = req.body.password;
+
+  User.findByCredentials(email, password).then((user) => {
+    //res.send(user);
+    return user.generateAuthToken().then((token) => {
+        res.header('x-auth', token).send(user);
+    });
+  }).catch((e) => {
+    console.log(2, e);
+    res.status(400).send();
+  });
+
+  
+
 });
 
 
