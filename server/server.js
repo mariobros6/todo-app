@@ -65,8 +65,8 @@ app.post('/users/login', (req, res) => {
 });
 
 app.delete('/users/me/token', authenticate, (req, res) => {
-  console.log(req);
-  console.log(1);
+  // console.log(req);
+  // console.log(1);
   req.user.removeToken(req.token).then(() => {
     res.status(200).send();
   }, () => {
@@ -77,7 +77,7 @@ app.delete('/users/me/token', authenticate, (req, res) => {
 
 
 app.get('/users/me', authenticate, (req, res) => {
-  console.log(2); 
+  // console.log(2); 
   res.send(req.user);
 });
 
