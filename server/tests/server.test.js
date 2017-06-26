@@ -18,6 +18,7 @@ describe('post /todos', () => {
 
         request(app)
             .post('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             .send({text})
             .expect(200)
             .expect((res) => {
@@ -43,6 +44,7 @@ describe('post /todos', () => {
     it('should not add', (done) => {
         request(app)
             .post('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             .send({})
             .expect(400)
             .end((err, res) => {
@@ -63,9 +65,10 @@ describe('GET /todos', () => {
     it('return todos', (done) => {
         request(app)
             .get('/todos')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
-                expect(res.body.todos.length).toBe(2);
+                expect(res.body.todos.length).toBe(1);
             })
             .end(done);
     });
@@ -75,6 +78,7 @@ describe('GET /todos/:id', () => {
     it('powinno zwrocic wybrany rekord', (done) => {
         request(app)
             .get('/todos/' + todos[0]._id.toHexString())
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(todos[0].text)
@@ -83,9 +87,18 @@ describe('GET /todos/:id', () => {
             .end(done);;
     });
 
+    it('NIE powinno zwrocic rekordu innego usera', (done) => {
+        request(app)
+            .get('/todos/' + todos[1]._id.toHexString())
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(404)
+            .end(done);;
+    });
+
     it('powinno zwrocic 404, gdy nie ma danych', (done) => {
         request(app)
             .get('/todos/' + (new ObjectID).toHexString())
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -95,6 +108,7 @@ describe('DELETE /todos/:id', () => {
     it('powinno kasowac wyrbany rekord', (done) => {
         request(app)
             .delete('/todos/' + (todos[0]._id).toHexString())
+            .set('x-auth', users[0].tokens[0].token)
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(todos[0].text);
@@ -117,9 +131,32 @@ describe('DELETE /todos/:id', () => {
             });
     });
 
+    it('NIe powinno kasowac wyrbany rekord', (done) => {
+        request(app)
+            .delete('/todos/' + (todos[0]._id).toHexString())
+            .set('x-auth', users[1].tokens[0].token)
+            .expect(404)
+            .end((err, res) => {
+                if (err) 
+                    return done(err);
+                
+                Todo.findById((todos[0]._id).toHexString()).then((todo) =>  {
+
+                    expect(todo).toExist();
+
+                    return done();
+
+                }).catch((err) => {
+                    if (err)
+                        return done(err);
+                });
+            });
+    });
+
     it('powinno zwrocic 404 - nie znaleziono', (done) => {
         request(app)
             .get('/todos/' + (new ObjectID).toHexString())
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -127,6 +164,7 @@ describe('DELETE /todos/:id', () => {
     it('powinno zwrocic 404 - glupie id', (done) => {
         request(app)
             .get('/todos/2323')
+            .set('x-auth', users[0].tokens[0].token)
             .expect(404)
             .end(done);
     });
@@ -137,6 +175,7 @@ describe('PATCH /todos', () => {
     it('powinno zrobic update', (done) => {
         request(app)
             .patch('/todos/' + todos[0]._id.toHexString())
+            .set('x-auth', users[0].tokens[0].token)
             .send({completed: true, text: "nowa treść 2"})
             .expect(200)
             .expect((res) => {
@@ -147,9 +186,23 @@ describe('PATCH /todos', () => {
             .end(done)
     });
 
+    it('NIE powinno zrobic update', (done) => {
+        request(app)
+            .patch('/todos/' + todos[0]._id.toHexString())
+            .set('x-auth', users[1].tokens[0].token)
+            .send({completed: true, text: "nowa treść 2"})
+            .expect(400)
+            .expect((res) => {
+                
+                console.log('-------------->', res, '<------');
+            })
+            .end(done)
+    });
+
      it('powinno wyczyścić completed', (done) => {
          request(app)
             .patch('/todos/' + todos[1]._id.toHexString())
+            .set('x-auth', users[1].tokens[0].token)
             .send({completed: false, text: "ddd"})
             .expect(200)
             .expect((res) => {
@@ -250,7 +303,8 @@ describe('POST /users/login', () => {
                 if (err)
                     return done(err);
                 User.findById(users[1]._id).then((user) => {
-                    expect(user.tokens[0]).toInclude({
+                    console.log(user);
+                    expect(user.tokens[1]).toInclude({
                         access: 'auth',
                         token: res.headers['x-auth']
                     });
@@ -274,7 +328,7 @@ describe('POST /users/login', () => {
                 if (err)
                     return done(err);
                 User.findById(users[1]._id).then((user) => {
-                    expect(user.tokens.length).toBe(0);
+                    expect(user.tokens.length).toBe(1);
                     done();
                 }).catch((err) => {
                     return done(err);
